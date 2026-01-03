@@ -43,18 +43,39 @@ const validateCPFFromAPI = async (cpf: string): Promise<{ valid: boolean; data?:
 
   try {
     const response = await axios.get(
-      `https://api.amnesiatecnologia.rocks/?token=e9f16505-2743-4392-bfbe-1b4b89a7367c&cpf=${numericCPF}`
+      `https://magmadatahub.com/api.php?token=bef7dbfe0994308f734fbfb4e2a0dec17aa7baed9f53a0f5dd700cf501f39f26&cpf=${numericCPF}`,
+      { timeout: 8000 }
     );
 
-    if (response.data && response.data.DADOS) {
+    console.log('Resposta da API de Login:', response.data);
+
+    const body = response.data;
+
+    if (body?.status === 'error' || body?.error) {
+      console.warn('CPF API: erro retornado', body);
+      return { valid: true };
+    }
+
+    // Trata diferentes formatos de resposta da API
+    let dados = body?.DADOS || body?.dados || body?.data;
+    
+    if (!dados && Array.isArray(body) && body.length > 0) {
+      dados = body[0];
+    }
+    
+    if (!dados && body?.nome) {
+      dados = body;
+    }
+
+    if (dados && dados.nome) {
       return {
         valid: true,
         data: {
-          cpf: response.data.DADOS.cpf,
-          nome: response.data.DADOS.nome,
-          nome_mae: response.data.DADOS.nome_mae,
-          data_nascimento: response.data.DADOS.data_nascimento,
-          sexo: response.data.DADOS.sexo
+          cpf: dados.cpf || dados.CPF || numericCPF,
+          nome: dados.nome || dados.NOME || "",
+          nome_mae: dados.nome_mae || dados.MAE || "",
+          data_nascimento: dados.data_nascimento || dados.DATA_NASCIMENTO || "",
+          sexo: dados.sexo || dados.SEXO || ""
         }
       };
     }
