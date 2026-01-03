@@ -130,7 +130,7 @@ const Main: React.FC = memo(() => {
 					<h2 className="text-2xl font-bold mb-4">GOVERNO FEDERAL - MINISTÉRIO DA EDUCAÇÃO</h2>
 
 					<img 
-						src="https://i.ibb.co/B5yb2TGz/Design-sem-nome-11.webp" 
+						src="https://i.ibb.co/JRSY7bdC/IMAGEM.webp" 
 						alt="Logo" 
 						loading="eager"
 						className="max-w-full h-auto"
@@ -165,7 +165,7 @@ const Main: React.FC = memo(() => {
 					{/* Image - Lazy loading para melhor performance */}
 					<div className="flex justify-center my-6">
 						<img
-							src="https://i.ibb.co/HTPs0QC8/Escol-A-4.png"
+							src="https://i.ibb.co/JRSY7bdC/IMAGEM.webp"
 							alt="Grupo de voluntários abraçados representando união e colaboração"
 							loading="lazy"
 							className="rounded-lg shadow-lg max-w-full h-auto"
